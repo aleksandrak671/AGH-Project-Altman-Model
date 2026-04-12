@@ -1,0 +1,580 @@
+---
+title: "Model Altmana"
+subtitle: "Metody ryzyka kredytowego i operacyjnego (2026)"
+author: "Aleksandra Konopelska"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+set.seed(2026)
+```
+
+# Część teoretyczna
+
+## Odpowiedzieć na pytanie, czym jest ryzyko kredytowe?
+
+Najprościej mówiąc, ryzyko kredytowe to ryzyko, że ktoś, komu pożyczyliśmy
+pieniądze, nie wywiąże się ze swoich zobowiązań, czyli nie spłaci długu
+w umówionym terminie, nie zapłaci odsetek albo zwróci tylko część należnej
+kwoty. Pojawia się wszędzie tam, gdzie jedna strona oddaje drugiej kapitał
+i liczy na jego spłatę np. gdy bank udziela firmie kredytu albo gdy
+inwestor kupuje obligacje wyemitowane przez jakąś spółkę.
+
+Ryzyko kredytowe można rozumieć dwojako:
+
+- jako **ryzyko niedotrzymania warunków (default risk)**: czyli
+  bezpośrednie ryzyko, że dłużnik nie wywiąże się ze swoich zobowiązań umownych,
+- jako **ryzyko wiarygodności kredytowej (creditworthiness risk)**:
+  czyli ryzyko, że sytuacja finansowa klienta się pogorszy i jego
+  zdolność do obsługi długu spadnie, jeszcze zanim faktycznie zaprzestanie
+  spłat.
+
+Można na nie patrzeć też z dwóch poziomów:
+
+- z poziomu **pojedynczego/indywidualnego klienta** i wtedy mówimy o *credit scoringu*,
+  czyli o ocenie konkretnej osoby lub firmy.
+- z poziomu **całego portfela kredytów** banku, czyli wszystkich
+  udzielonych pożyczek i kredytów łącznie. Tutaj pytamy nie o jednego
+  klienta, ale o to, ile bank może stracić, gdy wielu klientów naraz
+  nie spłaci swoich zobowiązań. Do tego służą np. modele takie jak
+  *CreditMetrics*.
+
+Żeby to ryzyko zmierzyć ilościowo, w praktyce szacuje się trzy
+podstawowe wielkości:
+
+- **PD** (*probability of default*), czyli z jakim prawdopodobieństwem klient
+  nie spłaci długu,
+- **LGD** (*loss given default*), czyli ile bank traci, gdy klient przestaje
+  spłacać. Jeśli klient pożyczył 100 zł i bankrutuje, a bankowi udaje
+  się odzyskać część przez sprzedaż jego majątku, to ta nieodzyskana
+  reszta to LGD. Szacuje się ją na podstawie historycznych
+  danych o tym, ile w przeszłości udawało się odzyskać od bankrutów,
+- **korelacje niedotrzymania**, czyli czy firmy bankrutują niezależnie od
+  siebie, czy razem. W praktyce bankructwa często się „grupują", np.
+  w czasie kryzysu lub pandemii wiele firm z tej samej branży upada
+  naraz. To sprawia, że ryzyko całego portfela może być znacznie wyższe,
+  niż gdybyśmy patrzyli na każdego klienta osobno.
+
+Ryzyko kredytowe od dawna jest jednym z głównych obszarów modelowanych
+przez banki. Już od lat 60. XX wieku powstają coraz nowsze modele,
+które pomagają je przewidywać i kontrolować. Wyróżnia się trzy główne
+typy modeli ryzyka kredytowego: **strukturalne**, **empiryczne** (do
+których należy właśnie model Altmana) oraz **zredukowane**. Osobną
+klasę stanowią modele **scoringowe** i **ratingowe**.
+
+## Zwięźle omówić ideę liniowej analizy dyskryminacyjnej. Dlaczego można ją wykorzystać do analizy ryzyka kredytowego?
+
+Liniowa analiza dyskryminacyjna to narzędzie ilościowe wykorzystywane
+do budowania modeli prognozowania upadłości firm. Jej idea to:
+zamiast oceniać firmę na podstawie jednego wskaźnika finansowego, bierze
+pod uwagę wiele wskaźników jednocześnie i na ich podstawie dzieli firmy
+na rozłączne grupy różniące się poziomem ryzyka upadłości, np. „brak
+ryzyka", „małe ryzyko" lub „wysokie ryzyko".
+
+Można ją wykorzystać do analizy ryzyka kredytowego, ponieważ ryzyko
+kredytowe to w praktyce ryzyko, że firma nie spłaci długu, czyli
+najczęściej, że upadnie. LDA pozwala bankowi na podstawie sprawozdań
+finansowych firmy ocenić, do której grupy firma należy: tych zagrożonych
+upadłością czy tych bezpiecznych. Dzięki temu bank może z wyprzedzeniem
+podjąć decyzję, czy udzielić kredytu, czy nie. Właśnie na tej metodzie
+opiera się model Altmana.
+
+## Jaką ma postać, do czego służy i jakie ograniczenia ma model Altmana?
+
+**Postać modelu.** Model Altmana jest liniową funkcją dyskryminacyjną
+opartą na pięciu wskaźnikach finansowych. Został
+zbudowany na próbie 66 amerykańskich firm działających w latach 1946–1965,
+podzielonych na dwie równe grupy: bankrutów i firm prowadzących normalną
+działalność. Spośród 22 wstępnie rozważanych wskaźników finansowych Altman
+ostatecznie wybrał pięć:
+
+- $X_1$ — **kapitał obrotowy / aktywa ogółem**, pokazuje ile firma ma
+  "wolnych" pieniędzy na bieżącą działalność (po opłaceniu krótkoterminowych
+  długów) w stosunku do całego majątku. Mierzy **płynność**, czyli to, czy
+  firma ma z czego płacić bieżące rachunki.
+- $X_2$ — **zysk zatrzymany / aktywa ogółem**, czyli ile firma uzbierała
+  zysków przez lata działalności. Pokazuje **skumulowaną rentowność**, a
+  pośrednio również wiek firmy (młode firmy mają tu niskie wartości, 
+  bo nie zdążyły jeszcze nic odłożyć).
+- $X_3$ — **EBIT / aktywa ogółem** (zysk przed odsetkami i podatkiem),
+  ile firma zarabia na swojej podstawowej działalności w stosunku do
+  majątku. Mierzy **rentowność operacyjną**, czyli to, czy firma w ogóle
+  zarabia na tym co robi.
+- $X_4$ — **rynkowa wartość akcji / wartość długów**, porównuje to, ile
+  inwestorzy są skłonni zapłacić za akcje firmy na giełdzie, z tym, ile
+  firma jest winna. Jeśli akcje są warte więcej niż długi ($X_4 > 1$),
+  to znak, że inwestorzy ufają firmie. Jeśli mniej, to znak, że firma
+  jest poważnie zadłużona w stosunku do swojej wartości rynkowej.
+- $X_5$ — **przychody ze sprzedaży / aktywa ogółem**, czyli ile firma
+  sprzedaje w stosunku do tego, ile ma majątku. Mierzy **sprawność**,
+  czyli to, jak efektywnie firma wykorzystuje swój majątek do zarabiania.
+
+Końcowa postać funkcji dyskryminacyjnej Altmana:
+
+$$
+Z = 1{,}2\,X_1 + 1{,}4\,X_2 + 3{,}3\,X_3 + 0{,}6\,X_4 + 0{,}99\,X_5
+$$
+
+**Reguła klasyfikacji (interpretacja wyników modelu Altmana):**
+
+- $Z > 3{,}0$ - bankructwo mało prawdopodobne (firma w dobrej kondycji),
+- $1{,}8 < Z < 3{,}0$ - szara strefa (model nie wydaje jednoznacznego
+  werdyktu),
+- $Z < 1{,}8$ - bankructwo (firma zagrożona upadłością).
+
+**Do czego służy.** Model Altmana jest zastosowaniem analizy
+dyskryminacyjnej do prognozowania upadłości przedsiębiorstw. Pozwala on
+na podstawie kilku wskaźników finansowych ocenić, czy dana firma będzie
+**wiarygodnym kredytobiorcą**, czy też grozi jej bankructwo. Z perspektywy
+banku jest to więc narzędzie typu *credit scoring*.
+
+**Ograniczenia.** Za ograniczenia modelu Altmana uważa się, że:
+
+- model jest **liniowy**, używa prostej formuły (mnożenia i dodawania)
+  i zakłada, że im gorsze wskaźniki, tym gorzej dla firmy. W rzeczywistości
+  upadek firmy często nie przebiega tak liniowo: czasem nagle coś się
+  załamie, a czasem firma utrzymuje się długo mimo słabych wskaźników.
+- model **operuje na danych księgowych**, bierze dane ze sprawozdań
+  finansowych, które publikuje się np. raz na kwartał albo raz na rok.
+  Czyli widzi sytuację firmy z opóźnieniem, a nie na bieżąco.
+- model jest **prosty i bazuje na niewielkiej liczbie informacji**,
+  używa tylko 5 wskaźników. Tymczasem o kondycji firmy może decydować
+  dużo więcej rzeczy (zarząd, branża, otoczenie rynkowe, klienci itd.),
+  których model nie uwzględnia.
+- użycie zmiennej $X_4$ (wartość **rynkowa** kapitału akcyjnego)
+  ogranicza zastosowanie oryginalnego modelu do **spółek notowanych
+  na giełdzie**, ponieważ tylko dla nich da się policzyć rynkową wartość
+  akcji. Dla firm prywatnych model w oryginalnej wersji nie zadziała.
+- model ma **słabą przenośność między krajami**, został zbudowany na
+  amerykańskich firmach z lat 60. W innym kraju (na przykład w Polsce) firmy mają
+  inne standardy księgowe i działają w innej gospodarce, więc te same
+  wskaźniki znaczą co innego. Firma uznana przez model za bezpieczną
+  w USA, w Polsce mogłaby w rzeczywistości być zagrożona, i odwrotnie.
+
+# Część praktyczna
+
+W tej części:
+
+1. Wczytuję zbiór danych *Polish Companies Bankruptcy* (plik `5year`)
+   zawierający wskaźniki finansowe polskich firm oraz informację o tym,
+   czy firma upadła po roku.
+2. Losuję próbę: 100 firm, które upadły, i 100, które przetrwały kolejny
+   rok działalności.
+3. Stosuję oryginalny model Altmana do predykcji upadłości na tej próbie
+   i oceniam jakość tej predykcji (macierz pomyłek, błędy I i II rodzaju,
+   trafność).
+4. Odpowiadam na pytanie, czy oryginalny model Altmana jest skutecznym
+   narzędziem do predykcji upadłości w przypadku tych danych, i staram
+   się wyjaśnić, dlaczego tak jest.
+
+## Wczytanie danych
+
+Pracuję na zbiorze *Polish Companies Bankruptcy* z UCI Machine Learning
+Repository, a dokładnie na pliku `5year`, który zawiera wskaźniki finansowe
+z 5. roku okresu prognozy oraz etykietę informującą o upadłości po 1 roku.
+
+**Link do zbioru:** https://archive.ics.uci.edu/dataset/365/polish+companies+bankruptcy+data
+
+Wczytuję plik CSV. Wartości brakujące są zakodowane jako `?`, więc przekazuję
+to do funkcji przez `na.strings`.
+
+```{r load-data}
+# wczytanie danych z pliku CSV; "?" traktowane jako brak danych
+dane <- read.csv("csv_result-5year.csv",
+                 header      = TRUE,
+                 na.strings  = "?",
+                 stringsAsFactors = FALSE)
+```
+
+Sprawdzam ile wierszy (firm) i kolumn (zmiennych) ma zbiór:
+
+```{r}
+# liczba wierszy i kolumn
+dim(dane)
+```
+
+Podgląd pierwszych kilku wierszy:
+
+```{r}
+# pierwsze 6 wierszy, pierwsze 10 kolumn
+head(dane[, 1:10])
+```
+
+Sprawdzam ile firm upadło (`class = 1`), a ile przetrwało (`class = 0`):
+
+```{r}
+# rozkład zmiennej celu: 0 = przetrwała, 1 = upadła
+table(dane$class)
+```
+
+Obliczam jaki procent wszystkich firm stanowią bankruci:
+
+```{r}
+# procent bankrutów w całym zbiorze
+round(mean(dane$class == 1) * 100, 1)
+```
+
+Zbiór zawiera 5910 firm i 66 zmiennych. Etykieta `class = 1` oznacza firmę,
+która upadła po 1 roku, a `class = 0` firmę, która przetrwała. W zbiorze
+jest 410 bankrutów i 5500 firm, które przetrwały. Zbiór jest mocno
+niezrównoważony: bankruci stanowią zaledwie 6,9% obserwacji. Dlatego zadanie wymaga dokładnie 
+100 + 100, aby obie grupy (bankruci i firmy, które przetrwały) były równomiernie reprezentowane w próbie.
+Gdybym losowała 200 firm z całego zbioru proporcjonalnie, dostałabym zaledwie ok
+~14 bankrutów, a model nauczyłby się głównie rozpoznawać firmy, które przetrwały.
+
+## Wybór zmiennych do modelu Altmana
+
+Zbiór danych z UCI Machine Learning Repository zawiera opis, które kolumny
+(Attr1, Attr2 itd.) odpowiadają którym wskaźnikom finansowym. Zgodnie z tym
+opisem oraz treścią zadania pięć wskaźników modelu Altmana odpowiada
+następującym kolumnom z pliku:
+
+| Zmienna Altmana | Definicja                                          | Kolumna w pliku |
+|-----------------|----------------------------------------------------|-----------------|
+| X1              | Working capital / Total assets                     | `Attr3`         |
+| X2              | Retained earnings / Total assets                   | `Attr6`         |
+| X3              | EBIT / Total assets                                | `Attr7`         |
+| X4              | (Book) equity / Book value of total liabilities    | `Attr8`         |
+| X5              | Sales / Total assets                               | `Attr9`         |
+
+**Uwaga do zmiennej $X_4$,** w oryginalnym modelu Altmana $X_4$ to
+rynkowa wartość kapitału własnego (czyli wartość akcji na giełdzie)
+podzielona przez zobowiązania. W zbiorze UCI mamy jednak tylko wartość
+księgową (kolumna Attr8 = book value of equity / total liabilities).
+Używam więc wartości księgowej zamiast rynkowej, wracam do tej różnicy
+we wnioskach.
+
+Wybieram z oryginalnego zbioru tylko te 5 kolumn i kolumnę `class`, a następnie
+usuwam wiersze z brakującymi wartościami:
+
+```{r}
+# tworzę ramkę danych z 5 wskaźnikami Altmana i etykietą klasy
+df <- data.frame(
+  X1     = dane$Attr3,   # kapitał obrotowy / aktywa
+  X2     = dane$Attr6,   # zysk zatrzymany / aktywa
+  X3     = dane$Attr7,   # EBIT / aktywa
+  X4     = dane$Attr8,   # kapitał własny / zobowiązania
+  X5     = dane$Attr9,   # sprzedaż / aktywa
+  status = dane$class    # etykieta: 1 = bankrut, 0 = przetrwał
+)
+
+# usuwam wiersze, w których brakuje wartości w którymkolwiek wskaźniku
+df <- df[complete.cases(df), ]
+```
+
+Sprawdzam ile firm zostało po usunięciu braków danych:
+
+```{r}
+# liczba firm po usunięciu braków: 0 = przetrwały, 1 = upadły
+table(df$status)
+```
+
+Po usunięciu braków danych zostało 5485 firm, które przetrwały, i 406 bankrutów.
+
+## Losowanie próby 100 + 100
+
+Dzielę zbiór na dwie grupy: bankruci i firmy, które przetrwały. Następnie losuję
+po 100 firm z każdej grupy.
+
+```{r}
+set.seed(2026)  # ustawiam ziarno losowości dla powtarzalności wyników
+
+bankruci <- df[df$status == 1, ]   # wybieram tylko bankrutów
+przetrwale <- df[df$status == 0, ]   # wybieram tylko firmy, które przetrwały
+
+prob_bank <- bankruci[sample(nrow(bankruci), 100), ]   # losuję 100 bankrutów
+prob_zdr  <- przetrwale[sample(nrow(przetrwale), 100), ]   # losuję 100 firm, które przetrwały
+
+proba <- rbind(prob_bank, prob_zdr)        # łączę obie grupy w jedną próbę
+proba <- proba[sample(nrow(proba)), ]      # mieszam kolejność wierszy
+```
+
+Sprawdzam czy w próbie są dokładnie po 100 firm z każdej grupy:
+
+```{r}
+table(proba$status)
+```
+
+W próbie jest dokładnie 100 bankrutów (`status = 1`) i 100 firm, które przetrwały (`status = 0`).
+
+## Funkcja licząca Z-score Altmana
+
+Funkcja `altman_z()` zwraca wartość $Z$ wyliczoną zgodnie z wzorem:
+
+$$
+Z = 1{,}2\,X_1 + 1{,}4\,X_2 + 3{,}3\,X_3 + 0{,}6\,X_4 + 0{,}99\,X_5
+$$
+
+Funkcja `altman_klasyfikacja()` przypisuje firmę do jednej z trzech stref (progi **1,8** i **3,0**):
+
+- $Z < 1{,}8$ → bankrut (`1`),
+- $Z > 3{,}0$ → firma, która przetrwa (`0`),
+- $1{,}8 \le Z \le 3{,}0$ → szara strefa (`NA`, brak jednoznacznej decyzji).
+
+```{r}
+# funkcja obliczająca z-score wg wzoru Altmana
+altman_z <- function(X1, X2, X3, X4, X5) {
+  1.2*X1 + 1.4*X2 + 3.3*X3 + 0.6*X4 + 0.99*X5
+}
+
+# funkcja klasyfikująca firmę na podstawie z-score
+altman_klasyfikacja <- function(Z) {
+  klasa <- rep(NA_integer_, length(Z))  # na start wszystkie = NA (szara strefa)
+  klasa[Z < 1.8] <- 1   # Z poniżej 1.8 -> bankrut
+  klasa[Z > 3.0] <- 0   # Z powyżej 3.0 -> firma, która przetrwa
+  # Z między 1.8 a 3.0 pozostaje NA (szara strefa -> brak decyzji)
+  klasa
+}
+```
+
+## Predykcja upadłości na próbie
+
+Dla każdej firmy z próby obliczam Z-score i przypisuję klasę:
+
+```{r}
+# obliczam Z-score dla każdej firmy w próbie
+proba$Z    <- with(proba, altman_z(X1, X2, X3, X4, X5))
+
+# klasyfikuję każdą firmę (bankrut / przetrwa / szara strefa)
+proba$pred <- altman_klasyfikacja(proba$Z)
+```
+
+Statystyki opisowe wartości Z-score w próbie:
+
+```{r}
+# min, max, mediana i inne statystyki rozkładu Z-score
+summary(proba$Z)
+```
+
+Wartości Z-score w próbie są bardzo zróżnicowane, od -237,4 do 16,5.
+Mediana wynosi 2,457, co oznacza, że połowa firm ma Z-score w okolicach
+szarej strefy (1,8–3,0). Średnia (1,456) jest niższa od mediany przez
+kilka bardzo ujemnych wartości skrajnych.
+
+### Macierz pomyłek (3 strefy)
+
+Buduję macierz pomyłek porównującą rzeczywisty status firmy z predykcją modelu.
+Kolumna `<NA>` to firmy w szarej strefie, dla których model nie wydał decyzji:
+
+```{r}
+# macierz pomyłek: wiersze = rzeczywistość, kolumny = predykcja modelu
+tab <- table(rzeczywiste = proba$status,
+             predykcja   = proba$pred,
+             useNA       = "ifany")
+tab
+```
+
+Z macierzy wynika:
+
+- **60** firm, które przetrwały, zostało poprawnie sklasyfikowanych jako niebankruci,
+- **22** firmy, które przetrwały, zostały błędnie uznane za bankrutów (błąd II rodzaju),
+- **18** firm, które przetrwały, wpadło w szarą strefę = brak decyzji,
+- **57** bankrutów zostało poprawnie wykrytych,
+- **23** bankrutów zostało błędnie sklasyfikowanych jako firmy, które przetrwają (błąd I rodzaju),
+- **20** bankrutów wpadło w szarą strefę = brak decyzji.
+
+Obliczam trafność tylko na firmach, które model zdołał sklasyfikować (czyli poza szarą strefą):
+
+```{r}
+sklasyfikowane <- proba[!is.na(proba$pred), ]
+n_skl  <- nrow(sklasyfikowane)         # ile firm zostało sklasyfikowanych
+n_szar <- sum(is.na(proba$pred))       # ile wpadło w szarą strefę
+acc    <- mean(sklasyfikowane$pred == sklasyfikowane$status)  # trafność
+```
+
+Zestawienie wyników:
+
+```{r}
+# tabela z podsumowaniem: ile sklasyfikowano, ile w szarej strefie, jaka trafność
+data.frame(
+  opis    = c("Sklasyfikowane firmy (z 200)",
+              "Firmy w szarej strefie (z 200)",
+              "Trafność (na sklasyfikowanych)"),
+  wartość = c(n_skl, n_szar, round(acc, 3))
+)
+```
+
+Model sklasyfikował **162 z 200 firm**. Pozostałe **38 firm** wpadło
+w szarą strefę i nie otrzymało żadnej decyzji. Na 162 sklasyfikowanych
+firmach model osiągnął trafność **72,2%**.
+
+### Błędy I i II rodzaju
+
+W kontekście oceny ryzyka kredytowego najgroźniejszy jest **błąd I rodzaju**, czyli 
+uznanie bankruta za zdrową firmę (bank udziela kredytu firmie, która
+zaraz upadnie). Liczymy go na firmach, dla których model wydał decyzję.
+
+Obliczam elementy macierzy pomyłek i na ich podstawie liczę miary jakości:
+
+```{r}
+sk <- sklasyfikowane  # skrót dla wygody :)
+
+# elementy macierzy pomyłek
+TP <- sum(sk$pred == 1 & sk$status == 1)  # bankrut poprawnie wykryty
+TN <- sum(sk$pred == 0 & sk$status == 0)  # firma, która przetrwała -> poprawnie oceniona
+FP <- sum(sk$pred == 1 & sk$status == 0)  # firma, która przetrwała -> uznana za bankruta (błąd II)
+FN <- sum(sk$pred == 0 & sk$status == 1)  # bankrut uznany za firmę która przetrwa (błąd I)
+
+# miary jakości klasyfikacji
+sensitivity <- TP / (TP + FN)   # czułość: jak dobrze wykrywa bankrutów
+specificity <- TN / (TN + FP)   # specyficzność: jak dobrze wykrywa firmy, które przetrwają
+err_I       <- FN / (TP + FN)   # błąd I rodzaju: bankrut uznany za firmę, która przetrwa
+err_II      <- FP / (TN + FP)   # błąd II rodzaju: firma, która przetrwała - uznana za bankruta
+
+data.frame(
+  miara   = c("Czułość (sensitivity)",
+              "Specyficzność (specificity)",
+              "Błąd I rodzaju (FN/(TP+FN))",
+              "Błąd II rodzaju (FP/(TN+FP))",
+              "Accuracy (na sklasyfikowanych)"),
+  wartość = round(c(sensitivity, specificity, err_I, err_II, acc), 3)
+)
+```
+
+Model poprawnie wykrył **71,3%** bankrutów i **73,2%** firm,
+które przetrwały. Błąd I rodzaju wynosi **28,8%**, czyli co
+trzeci bankrut został błędnie uznany za firmę, która przetrwa. To
+najgroźniejszy błąd z punktu widzenia banku. Ogólna trafność na
+sklasyfikowanych firmach wynosi **72,2%**.
+
+### Wizualizacja rozkładu Z-score
+
+Wykres pudełkowy pokazuje jak różnią się wartości Z-score między grupami.
+Czerwona linia to dolny próg 1,8, zielona to górny próg 3,0:
+
+```{r plot-z, fig.width=7, fig.height=5}
+# wykres pudełkowy Z-score w podziale na bankrutów i firmy, które przetrwały
+# ylim ogranicza oś Y do zakresu -15 do 20, żeby ekstremalny outlier (-237)
+# nie psuł skali wykresu
+boxplot(Z ~ status, data = proba,
+        names = c("Przetrwali (0)", "Bankruci (1)"),
+        ylab  = "Z-score Altmana",
+        main  = "Rozkład Z-score w grupach (oś Y: -15 do 20)",
+        col   = c("palegreen3", "salmon"),
+        ylim  = c(-15, 20))
+abline(h = 1.8, col = "red",    lty = 2)   # dolny próg
+abline(h = 3.0, col = "green4", lty = 2)   # górny próg
+legend("topright",
+       legend = c("dolny próg 1.8", "górny próg 3.0"),
+       col    = c("red", "green4"),
+       lty    = c(2, 2),
+       bty    = "n",
+       cex    = 0.8)
+```
+
+Z wykresu widać, że:
+
+- **Firmy, które przetrwały** mają wyższe wartości Z-score.
+  Mediana leży w okolicy progu 3,0, a większa część pudełka znajduje się
+  powyżej progu 1,8, czyli w bezpiecznej strefie.
+- **Bankruci** mają wyraźnie niższe wartości Z-score.
+  Mediana jest poniżej progu 1,8, czyli w strefie bankructwa, a pudełko
+  w większości leży pod dolnym progiem.
+- **Oba "pudełka" częściowo nakładają się na szarą strefę** (pomiędzy liniami
+  1,8 a 3,0), co oznacza, że model nie ma jak jednoznacznie rozróżnić części
+  firm z obu grup. To właśnie te firmy trafiają do szarej strefy.
+- **Widać też outliery w obu grupach**, niektórzy bankruci mają bardzo
+  wysokie Z-score (powyżej 10), a niektóre firmy, które przetrwały, mają
+  ujemne wartości. To pokazuje, że model nie jest idealny i niektóre
+  firmy wymykają się prostej klasyfikacji.
+
+## (Dodatkowo) Czy LDA poradziłaby sobie lepiej?
+
+Model Altmana używa gotowych wag (1,2; 1,4; 3,3; 0,6; 0,99)
+wyestymowanych na amerykańskich firmach z 1968 roku.
+Sprawdzam, czy dopasowanie własnych wag do polskich danych da lepszą
+trafność niż te gotowe wagi. To sprawdza funkcja `lda()` z biblioteki `MASS`:
+
+1. Bierze te same 5 wskaźników ($X_1, \dots, X_5$) co Altman,
+2. Ale zamiast używać gotowych wag, sama wylicza własne
+   współczynniki liniowe, które najlepiej rozdzielają bankrutów od firm,
+   które przetrwały, na naszej próbie 200 polskich firm,
+3. Następnie predykuje klasę każdej firmy (bankrut / nie-bankrut), 
+   tutaj nie ma szarej strefy, LDA daje zawsze jednoznaczną odpowiedź.
+
+Jeśli LDA wyjdzie **lepsza** od oryginalnego Altmana, to potwierdzi,
+że wagi Altmana są słabo dopasowane do polskich danych. Jeśli wyjdzie
+**gorsza** coś innego jest przyczyną niskiej trafności modelu.
+
+Dopasowuję model LDA na próbie 200 polskich firm:
+
+```{r}
+library(MASS)  # biblioteka z funkcją lda()
+
+# uczę model LDA na naszej próbie (te same zmienne co Altman)
+model_lda <- lda(status ~ X1 + X2 + X3 + X4 + X5, data = proba)
+```
+
+Wyniki modelu LDA, współczynniki i średnie grup:
+
+```{r}
+# wyświetlam dopasowany model: średnie grup i współczynniki dyskryminacyjne
+model_lda
+```
+
+Prawdopodobieństwa obu klas wynoszą 0,5, bo próba jest zrównoważona (100 bankrutów i 100 firm, które przetrwały). Średnie grup pokazują wyraźne różnice między bankrutami a firmami, które przetrwały, bankruci mają ujemne wartości X1, X2, X3, podczas gdy firmy, które przetrwały, mają wartości dodatnie. Współczynniki dyskryminacyjne LD1 to właśnie własne wagi wyliczone przez LDA na naszych danych.
+
+Używam dopasowanego modelu LDA do predykcji na tej samej próbie:
+
+```{r}
+# predykcja klas dla wszystkich 200 firm w próbie
+pred_lda <- predict(model_lda, proba)$class
+
+# macierz pomyłek dla LDA
+tab_lda  <- table(rzeczywiste = proba$status, predykcja = pred_lda)
+
+# trafność LDA
+acc_lda  <- mean(pred_lda == proba$status)
+```
+
+Macierz pomyłek LDA:
+
+```{r}
+# macierz pomyłek: wiersze = rzeczywistość, kolumny = predykcja LDA
+tab_lda
+```
+
+LDA poprawnie sklasyfikowała 74 firmy, które przetrwały (wiersz 0, kolumna 0) i 55 bankrutów (wiersz 1, kolumna 1). Błędnie zakwalifikowała 26 firm, które przetrwały, jako bankrutów i 45 bankrutów jako firmy, które przetrwają. Łączna trafność: (74 + 55) / 200 = 64,5%.
+
+Porównanie trafności LDA z oryginalnym modelem Altmana:
+
+```{r}
+# zestawienie trafności obu modeli
+data.frame(
+  model    = c("LDA",
+               "Altman"),
+  trafność = round(c(acc_lda, acc), 3)
+)
+```
+
+Wynik jest dość zaskakujący:dopasowana LDA (64,5%) wypadła gorzej
+niż oryginalny model Altmana (72,2%). Może to wynikać z małej próby
+treningowej, na zaledwie 200 obserwacjach LDA nie miała wystarczająco
+dużo danych, żeby dobrze wyestymować wagi.
+
+# Wnioski
+
+Model Altmana na polskich danych osiągnął trafność **72,2%** na 162
+sklasyfikowanych firmach. 38 firm trafiło do szarej strefy i nie otrzymało
+żadnej decyzji. Błąd I rodzaju wyniósł **28,8%**, czyli prawie co trzeci bankrut
+został błędnie uznany za firmę, która przetrwa.
+
+Model działa słabiej niż na oryginalnych danych amerykańskich, co wynika z:
+
+- wag wyestymowanych na innych danych (USA, lata 60.),
+- użycia wartości księgowej zamiast rynkowej dla $X_4$,
+- różnic w standardach rachunkowości.
+
+Dodatkowo, własna LDA dopasowana do polskich danych dała trafność **64,5%**,
+czyli gorszą niż Altman. Może to wynikać z małej próby treningowej (200 firm).
+
+**Wniosek:** model Altmana można traktować jako wstępny sygnał ostrzegawczy,
+ale może nie być precyzyjnym narzędziem decyzyjnym dla polskich firm.
