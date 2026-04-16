@@ -1,4 +1,4 @@
-# AGH-Project-Altman-Model
+# AGH Project Altman Model
 
 University project applying Altman's Z-score model to Polish company bankruptcy data, with a comparison against a locally fitted LDA model.
 
