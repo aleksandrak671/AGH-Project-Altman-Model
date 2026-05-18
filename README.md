@@ -1,54 +1,62 @@
-# AGH Project Altman Model
+# Bankruptcy Prediction — Altman Z-Score Model
 
-University project applying Altman's Z-score model to Polish company bankruptcy data, with a comparison against a locally fitted LDA model.
+AGH University project for the course **Credit and Operational Risk Methods**.  
+Application of the **Altman Z-score model** to predict bankruptcy of Polish companies, with a comparison against a locally fitted **Linear Discriminant Analysis (LDA)**.
 
-## Dataset
+## Overview
 
-Polish Companies Bankruptcy Data (UCI ML Repository) — `5year` file.  
-5910 firms, 66 variables. Heavily imbalanced: 6.9% bankrupts (410 firms).  
-A balanced sample of 100 bankrupts and 100 surviving firms was drawn for evaluation.
+The project applies the original Altman (1968) discriminant function to a sample of Polish firms and evaluates how well a model built on 1960s American data transfers to a different economic context. The key finding is that a locally re-estimated LDA outperforms the original Altman model when both are compared fairly on the same full sample.
 
-## Method
+## Data
 
-The original Altman (1968) formula was applied:
+**Polish Companies Bankruptcy Dataset** — UCI Machine Learning Repository  
+[https://archive.ics.uci.edu/dataset/365/polish+companies+bankruptcy+data](https://archive.ics.uci.edu/dataset/365/polish+companies+bankruptcy+data)
 
-```
-Z = 1.2*X1 + 1.4*X2 + 3.3*X3 + 0.6*X4 + 0.99*X5
-```
+File used: `5year` — financial ratios from year 5 of the forecasting period, with a binary label indicating bankruptcy after 1 year (5,910 firms, 66 variables).
 
-| Variable | Definition | Dataset column |
-|----------|-----------|----------------|
-| X1 | Working capital / Total assets | Attr3 |
-| X2 | Retained earnings / Total assets | Attr6 |
-| X3 | EBIT / Total assets | Attr7 |
-| X4 | Book equity / Total liabilities | Attr8 |
-| X5 | Sales / Total assets | Attr9 |
+The dataset is heavily imbalanced: bankruptcies account for only 6.9% of observations. A balanced sample of **100 bankrupt + 100 surviving firms** was drawn for analysis.
 
-**Note:** X4 uses book value instead of market value (original model requires listed companies).
+## Altman Z-Score Formula
 
-Classification thresholds: Z < 1.8 = bankrupt, Z > 3.0 = safe, 1.8–3.0 = grey zone.
+$$Z = 1.2\,X_1 + 1.4\,X_2 + 3.3\,X_3 + 0.6\,X_4 + 0.99\,X_5$$
+
+| Variable | Definition | Column in dataset |
+|----------|------------|-------------------|
+| X₁ | Working capital / Total assets | Attr3 |
+| X₂ | Retained earnings / Total assets | Attr6 |
+| X₃ | EBIT / Total assets | Attr7 |
+| X₄ | Book equity / Total liabilities* | Attr8 |
+| X₅ | Sales / Total assets | Attr9 |
+
+*Original model uses market value of equity; book value used here as the dataset contains no market data.
+
+**Classification zones:** Z > 3.0 → safe, 1.8 < Z < 3.0 → grey zone, Z < 1.8 → distress.
 
 ## Results
 
-| Metric | Value |
-|--------|-------|
-| Classified firms (out of 200) | 162 |
-| Grey zone (no decision) | 38 |
-| Accuracy (on classified) | 72.2% |
-| Sensitivity (bankrupts detected) | 71.3% |
-| Specificity (survivors detected) | 73.2% |
-| Type I error (bankrupt misclassified as safe) | 28.8% |
-| Type II error (survivor misclassified as bankrupt) | 26.8% |
+| Model | Sample | Accuracy |
+|-------|--------|----------|
+| Altman (excluding grey zone) | 162 / 200 firms | 72.2% |
+| Altman (grey zone = misclassification) | 200 / 200 firms | 58.5% |
+| LDA fitted on Polish data | 200 / 200 firms | 64.5% |
 
-A locally fitted LDA on the same sample achieved only 64.5% accuracy, likely due to the small training set (200 firms).
+38 firms (19%) fell into the grey zone and received no decision from the Altman model. When evaluated fairly on the full 200-firm sample — treating the grey zone as a failed classification, since a bank must always make a decision — the locally fitted LDA (64.5%) outperforms the original Altman model (58.5%). This confirms that the original weights estimated on 1960s American firms do not transfer well to Polish data.
 
-## Key Takeaways
+Type I error (bankrupt classified as safe): **28.8%** — nearly one in three bankruptcies was missed.
 
-- The model performs below its original reported accuracy, expected given it was built on US firms from the 1960s with different accounting standards.
-- Type I error of ~29% is high from a credit risk perspective — nearly 1 in 3 bankrupts passes as safe.
-- The grey zone accounts for 19% of firms, leaving a significant share without a clear verdict.
-- Altman's Z-score can serve as an early warning signal but should not be used as a standalone decision tool for Polish firms.
+## Files
+
+- `Model_Altmana.Rmd` — R Markdown source file
+- `Model_Altmana.html` — compiled report
+- `csv_result-5year.csv` — input dataset (download from UCI link above)
 
 ## Requirements
 
-R with the `MASS` package.
+R packages:
+```r
+install.packages(c("MASS", "knitr", "rmarkdown"))
+```
+
+## Notes
+
+The comparison between Altman and LDA is intentionally done on the **same full sample of 200 firms** to avoid the bias that arises when the grey zone is excluded, a methodological point flagged during the project review.
